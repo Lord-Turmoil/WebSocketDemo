@@ -7,6 +7,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import top.tony.wsdemo.models.WebSocketPayload;
+import top.tony.wsdemo.services.WebSocketSessionService;
 
 import java.io.IOException;
 import java.net.URI;
@@ -14,6 +15,12 @@ import java.net.URI;
 @Component
 @Slf4j
 public class WebSocketHandler extends TextWebSocketHandler {
+    private final WebSocketSessionService sessionService;
+
+    public WebSocketHandler(WebSocketSessionService sessionService) {
+        this.sessionService = sessionService;
+    }
+
     /**
      * Invoked when a new WebSocket message arrives.
      *
@@ -47,8 +54,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
             return;
         }
         String username = uri.toString().substring(pos + 1);
-
         session.sendMessage(WebSocketPayload.message("Welcome back, commander " + username + ".").toTextMessage());
+
+        sessionService.addSession(session, username);
     }
 
     /**
@@ -61,6 +69,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("Connection closed: {} status = {}", session, status);
+        sessionService.removeSession(session);
     }
 
     /**
@@ -76,5 +85,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
             webSocketSession.close();
         }
         log.error("Transport error: {}", throwable.getMessage());
+        sessionService.removeSession(webSocketSession);
     }
 }
